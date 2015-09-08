@@ -1,6 +1,6 @@
 /* http_load - multiprocessing http test client
 **
-** Copyright © 1998,1999,2001 by Jef Poskanzer <jef@mail.acme.com>.
+** Copyright ï¿½ 1998,1999,2001 by Jef Poskanzer <jef@mail.acme.com>.
 ** All rights reserved.
 **
 ** Redistribution and use in source and binary forms, with or without
@@ -11,7 +11,7 @@
 ** 2. Redistributions in binary form must reproduce the above copyright
 **    notice, this list of conditions and the following disclaimer in the
 **    documentation and/or other materials provided with the distribution.
-** 
+**
 ** THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
 ** ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 ** IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -540,6 +540,7 @@ read_url_file( char* url_file )
 #endif
     int proto_len, host_len;
     char* cp;
+    int i;
 
     fp = fopen( url_file, "r" );
     if ( fp == (FILE*) 0 )
@@ -608,7 +609,7 @@ read_url_file( char* url_file )
 #else
 	    urls[num_urls].port = 80;
 #endif
-	if ( *cp == '\0' ) 
+	if ( *cp == '\0' )
 	    urls[num_urls].filename = strdup_check( "/" );
 	else
 	    urls[num_urls].filename = strdup_check( cp );
@@ -619,6 +620,10 @@ read_url_file( char* url_file )
 	urls[num_urls].got_checksum = 0;
 	++num_urls;
 	}
+
+    for(i=0; i<num_urls;i++){
+        printf("[%d] %s:%d\n", i, urls[i].hostname, urls[i].port);
+    }
     }
 
 
@@ -674,7 +679,7 @@ lookup_address( int url_num )
 	{
 	switch ( ai2->ai_family )
 	    {
-	    case AF_INET: 
+	    case AF_INET:
 	    if ( aiv4 == (struct addrinfo*) 0 )
 		aiv4 = ai2;
 	    break;
@@ -859,7 +864,7 @@ start_socket( int url_num, int cnum, struct timeval* nowP )
 	(void) close( connections[cnum].conn_fd );
 	return;
 	}
-    if ( fcntl( connections[cnum].conn_fd, F_SETFL, flags | O_NDELAY ) < 0 ) 
+    if ( fcntl( connections[cnum].conn_fd, F_SETFL, flags | O_NDELAY ) < 0 )
 	{
 	perror( urls[url_num].url_str );
 	(void) close( connections[cnum].conn_fd );
@@ -1024,9 +1029,19 @@ handle_connect( int cnum, struct timeval* nowP, int double_check )
 	bytes = snprintf(
 	    buf, sizeof(buf), "GET %.500s HTTP/1.0\r\n",
 	    urls[url_num].filename );
-    bytes += snprintf(
-	&buf[bytes], sizeof(buf) - bytes, "Host: %s\r\n",
-	urls[url_num].hostname );
+
+    if(urls[url_num].port == 80 || urls[url_num].port == 443) {
+        bytes += snprintf(
+    	&buf[bytes], sizeof(buf) - bytes, "Host: %s\r\n",
+    	urls[url_num].hostname);
+    }
+    else {
+        bytes += snprintf(
+    	&buf[bytes], sizeof(buf) - bytes, "Host: %s:%d\r\n",
+    	urls[url_num].hostname, urls[url_num].port );
+    }
+
+
     bytes += snprintf(
 	&buf[bytes], sizeof(buf) - bytes, "User-Agent: %s\r\n", HTTP_LOAD_VERSION );
     bytes += snprintf( &buf[bytes], sizeof(buf) - bytes, "\r\n" );
