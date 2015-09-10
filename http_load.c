@@ -864,7 +864,11 @@ start_socket( int url_num, int cnum, struct timeval* nowP )
         (void) close( connections[cnum].conn_fd );
         return;
     }
+#if 0
     if ( fcntl( connections[cnum].conn_fd, F_SETFL, flags | O_NDELAY ) < 0 )
+#else
+    if ( fcntl( connections[cnum].conn_fd, F_SETFL, flags | O_NONBLOCK ) < 0 )
+#endif
     {
         perror( urls[url_num].url_str );
         (void) close( connections[cnum].conn_fd );
@@ -992,8 +996,13 @@ handle_connect( int cnum, struct timeval* nowP, int double_check )
         }
         flags = fcntl( connections[cnum].conn_fd, F_GETFL, 0 );
         if ( flags != -1 )
+#if 0
             (void) fcntl(
                 connections[cnum].conn_fd, F_SETFL, flags & ~(int) O_NDELAY );
+#else
+            (void) fcntl(
+                connections[cnum].conn_fd, F_SETFL, flags & ~(int) O_NONBLOCK );
+#endif
         connections[cnum].ssl = SSL_new( ssl_ctx );
         SSL_set_fd( connections[cnum].ssl, connections[cnum].conn_fd );
         r = SSL_connect( connections[cnum].ssl );
@@ -1095,7 +1104,11 @@ handle_read( int cnum, struct timeval* nowP )
 #else
     bytes_read = read( connections[cnum].conn_fd, buf, bytes_to_read );
 #endif
+#if 1
     if ( bytes_read <= 0 )
+#else
+    if ( bytes_read < 0 )
+#endif
     {
         close_connection( cnum );
         return;
@@ -1625,6 +1638,11 @@ handle_read( int cnum, struct timeval* nowP )
             if ( connections[cnum].content_length != -1 &&
                  connections[cnum].bytes >= connections[cnum].content_length )
             {
+                if(do_verbose)
+                {
+                    (void) fprintf(
+                        stderr, "content_length %ld: get %ld\n", connections[cnum].content_length, connections[cnum].bytes );
+                }
                 close_connection( cnum );
                 return;
             }
@@ -1729,6 +1747,11 @@ close_connection( int cnum )
         }
         else
         {
+        #if 0
+            /**
+             * visit the the same URL, the content is not the same, so the following check is
+             * useless
+             */
             if ( connections[cnum].bytes != urls[url_num].bytes )
             {
                 (void) fprintf(
@@ -1741,6 +1764,7 @@ close_connection( int cnum )
                 (void) fprintf(
                     stderr, "%s: byte count %ld\n", urls[url_num].url_str, urls[url_num].bytes);
             }
+        #endif
         }
     }
 }
