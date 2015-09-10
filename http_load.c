@@ -1665,6 +1665,9 @@ close_connection( int cnum )
 {
     int url_num;
 
+    if(connections[cnum].conn_state == CNST_FREE)
+        return;
+
 #ifdef USE_SSL
     if ( urls[connections[cnum].url_num].protocol == PROTO_HTTPS )
         SSL_free( connections[cnum].ssl );
@@ -1729,8 +1732,14 @@ close_connection( int cnum )
             if ( connections[cnum].bytes != urls[url_num].bytes )
             {
                 (void) fprintf(
-                    stderr, "%s: byte count wrong\n", urls[url_num].url_str );
+                    stderr, "%s: byte count wrong [%ld, %ld]\n", urls[url_num].url_str, urls[url_num].bytes, connections[cnum].bytes );
                 ++total_badbytes;
+            }
+            else
+            {
+                if(do_verbose)
+                (void) fprintf(
+                    stderr, "%s: byte count %ld\n", urls[url_num].url_str, urls[url_num].bytes);
             }
         }
     }
